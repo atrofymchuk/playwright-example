@@ -1,13 +1,12 @@
 FROM python:3.11-slim
 
-# Install itsdangerous for secure client-side sessions:
-RUN pip3 install itsdangerous && rm -rf /root/.cache
+RUN pip3 install --no-cache-dir itsdangerous
 
-# Disable buffering to view logs via docker:
 ENV PYTHONUNBUFFERED=1
 
-COPY server.py /srv/
+WORKDIR /srv
+COPY server.py /srv/server.py
 
 USER nobody
 
-CMD ["/srv/server.py"]
+CMD ["python3", "/srv/server.py"]
