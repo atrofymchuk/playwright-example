@@ -1,45 +1,39 @@
 name: Test
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ test ]
+  pull_request:
+    branches: [ test ]
 
 env:
   FORCE_COLOR: 1
 
 jobs:
-  npm-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 16
-      - run: npm ci
-      - run: npx playwright install-deps
-      - run: npx playwright install
-      - run: docker-compose up -d example
-      - run: npm test
-      - run: docker-compose down
-        if: always()
-      - uses: actions/upload-artifact@v2
-        if: always()
-        with:
-          name: npm-test-results
-          path: test-results
-
   docker-test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 20
+
       - run: npm ci
-      - run: mkdir test-results
-      - run: docker-compose run --rm playwright
-      - run: docker-compose down
+
+      - run: mkdir -p test-results
+
+      - name: Run tests in docker-compose
+        run: docker compose run --rm playwright
+
+      - name: Cleanup
         if: always()
-      - uses: actions/upload-artifact@v2
+        run: docker compose down
+
+      - name: Upload artifact
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: docker-test-results
           path: test-results
