@@ -1,4 +1,4 @@
-FROM python:alpine
+FROM python:3.11-slim
 
 # Install itsdangerous for secure client-side sessions:
 RUN pip3 install itsdangerous && rm -rf /root/.cache
