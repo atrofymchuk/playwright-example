@@ -1,4 +1,4 @@
-name: Test
+name: Test (self-hosted)
 
 on:
   push:
@@ -14,24 +14,54 @@ jobs:
     runs-on: [self-hosted, linux, ubuntu]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - run: npm ci
+      - name: Install npm dependencies
+        run: npm ci
 
-      - run: mkdir -p test-results
+      - name: Ensure test-results dir exists
+        run: mkdir -p test-results
 
-      - name: Run tests in docker-compose
+      - name: Start example service
+        run: docker compose up -d example
+
+      - name: Wait for example to be ready
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Compose services:"
+          docker compose ps
+
+          # Wait up to ~60s for the app to become reachable inside the compose network
+          for i in {1..60}; do
+            # Execute inside the 'playwright' service container context to verify it can resolve 'example'
+            if docker compose run --rm --entrypoint sh playwright -lc \
+              'wget -qO- http://example:8080/login.html >/dev/null 2>&1'; then
+              echo "✅ example is reachable from playwright container"
+              exit 0
+            fi
+            echo "⏳ waiting for example... ($i/60)"
+            sleep 1
+          done
+
+          echo "❌ example did not become reachable in time"
+          docker compose ps
+          exit 1
+
+      - name: Run Playwright tests (docker)
         run: docker compose run --rm playwright
 
       - name: Cleanup
         if: always()
-        run: docker compose down
+        run: docker compose down -v
 
-      - name: Upload artifact
+      - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
