@@ -11,7 +11,7 @@ env:
 
 jobs:
   docker-test:
-    runs-on: [self-hosted, linux, docker]
+    runs-on: [self-hosted, linux, ubuntu]
 
     steps:
       - uses: actions/checkout@v4
